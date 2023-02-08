@@ -41,7 +41,7 @@ CXXFLAGS ?= 	   -O2 -g -std=c++14 -fmax-errors=100 -Wall -Wextra   				\
     			#    -fsanitize=vptr                                                 				\
     			#    -lm -pie
 
-SRC 	:= main.cpp
+SRC 	:= main.cpp rand.cpp model.cpp
 
 OUT 	:= main.o
 
