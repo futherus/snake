@@ -4,11 +4,12 @@
 #include <vector>
 #include <list>
 #include <memory>
-#include <SFML/Graphics.hpp>
+#include <algorithm>
+#include <assert.h>
 
 #include "debug.h"
-#include "rectangle.h"
 #include "rand.h"
+#include "vector2.h"
 
 namespace py
 {
@@ -26,26 +27,26 @@ enum class ObjectType
 class Apple final
 {
 private:
-    sf::Vector2u pos_;
+    Vector2u pos_;
 
 public:
-    Apple(sf::Vector2u pos = {0, 0})
+    Apple(Vector2u pos = {0, 0})
         : pos_(pos)
     {}
 
-    void setPos(sf::Vector2u pos) { pos_ = pos; }
-    bool occupies(sf::Vector2u pos) const { return pos_ == pos; }
+    void setPos(Vector2u pos) { pos_ = pos; }
+    bool occupies(Vector2u pos) const { return pos_ == pos; }
 };
 
 class Snake final
 {
 private:
-    std::vector<sf::Vector2u> pos_;
+    std::vector<Vector2u> pos_;
 
     Field* field_;
 
 public:
-    Snake(std::vector<sf::Vector2u>&& pos)
+    Snake(std::vector<Vector2u>&& pos)
         : pos_(pos)
         , field_()
     {}
@@ -60,7 +61,7 @@ public:
         Down
     };
 
-    bool occupies(sf::Vector2u pos)
+    bool occupies(Vector2u pos)
     {
         return std::find(pos_.begin(), pos_.end(), pos) != pos_.end();
     }
@@ -71,21 +72,21 @@ public:
 class Field final
 {
 private:
-    sf::Vector2u size_;
+    Vector2u size_;
 
     Apple* apple_;
     Snake* snake_;
 
 public:
-    Field(sf::Vector2u size, Apple* apple, Snake* snake)
+    Field(Vector2u size, Apple* apple, Snake* snake)
         : size_(size)
         , apple_(apple)
         , snake_(snake)
     {}
 
-    sf::Vector2u getSize() { return size_; }
+    Vector2u getSize() { return size_; }
 
-    ObjectType checkTile(sf::Vector2u pos) const
+    ObjectType checkTile(Vector2u pos) const
     {
         if (!contains(pos))
         {
@@ -109,7 +110,7 @@ public:
 
     void resetApple()
     {$$
-        sf::Vector2u new_pos;
+        Vector2u new_pos;
 
         do
         {
@@ -122,7 +123,7 @@ public:
         apple_->setPos(new_pos);
     }
 
-    bool contains(sf::Vector2u pos) const { return pos.x < size_.x && pos.y < size_.y; }
+    bool contains(Vector2u pos) const { return pos.x < size_.x && pos.y < size_.y; }
 
 };
 

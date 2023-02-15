@@ -5,7 +5,7 @@ namespace py
 
 void Snake::tryMove(Shift shift)
 {$$
-    sf::Vector2u new_pos = pos_[0];
+    Vector2u new_pos = pos_[0];
     switch (shift)
     {
         case Shift::Left:

@@ -32,6 +32,7 @@ int main(int argc, char* argv[])
     field->resetApple();
 
     py::TuiView view(field.get(), snake.get(), apple.get());
+    // py::GuiView view(field.get(), snake.get(), apple.get());
     view.run();
 
     // sf::Clock clock;
