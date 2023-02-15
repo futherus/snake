@@ -1,6 +1,7 @@
 #include <stdio.h>
-// #include "view.h"
+#include "view.h"
 #include "model.h"
+#include "ncurses.h"
 #include <memory>
 
 int main(int argc, char* argv[])
@@ -22,20 +23,46 @@ int main(int argc, char* argv[])
     }));
 
     std::unique_ptr<py::Field> field(new py::Field(
-        {40, 40},
+        {20, 20},
         apple.get(),
         snake.get()
     ));
 
     snake->setField(field.get());
-
     field->resetApple();
-    field->draw();
-    std::printf("\n\n");
 
-    snake->tryMove(py::Snake::Shift::Down);
-    field->draw();
-    std::printf("\n\n");
+    py::TuiView view(field.get(), snake.get(), apple.get());
+    view.run();
+
+    // sf::Clock clock;
+    // while (!sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
+    // {
+    //     if (clock.getElapsedTime().asMilliseconds() > 100)
+    //     {
+    //         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
+    //         {
+    //             snake->tryMove(py::Snake::Shift::Left);
+    //             clock.restart();
+    //         }
+    //         else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
+    //         {
+    //             snake->tryMove(py::Snake::Shift::Right);
+    //             clock.restart();
+    //         }
+    //         else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
+    //         {
+    //             snake->tryMove(py::Snake::Shift::Up);
+    //             clock.restart();
+    //         }
+    //         else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
+    //         {
+    //             snake->tryMove(py::Snake::Shift::Down);
+    //             clock.restart();
+    //         }
+    //     }
+    //     refresh();
+    //     field->draw();
+    // }
 
     return 0;
 }

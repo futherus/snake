@@ -1,5 +1,5 @@
 export CXX      := g++
-export CXXFLAGS ?=  -O2 -g -std=c++14 -fmax-errors=100 -Wall -Wextra  	    \
+export CXXFLAGS ?=  -DNDEBUG -O2 -g -std=c++14 -fmax-errors=100 -Wall -Wextra  	    \
 				-Weffc++ -Waggressive-loop-optimizations -Wc++0x-compat 	   					\
 				-Wc++11-compat -Wc++14-compat -Wcast-align -Wcast-qual 	   					\
 				-Wchar-subscripts -Wconditionally-supported -Wconversion        				\
@@ -49,7 +49,7 @@ TARGET         := $(DESTDIR)/out
 export OBJDIR  := $(CURDIR)/obj
 OBJ            := main.o
 
-LIB            := sfml-graphics sfml-window sfml-system fmt
+LIB            := sfml-graphics sfml-window sfml-system fmt ncurses
 
 #------------------------------------------------------------------------------
 all: build

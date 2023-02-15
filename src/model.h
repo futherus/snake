@@ -83,6 +83,8 @@ public:
         , snake_(snake)
     {}
 
+    sf::Vector2u getSize() { return size_; }
+
     ObjectType checkTile(sf::Vector2u pos) const
     {
         if (!contains(pos))
@@ -122,31 +124,6 @@ public:
 
     bool contains(sf::Vector2u pos) const { return pos.x < size_.x && pos.y < size_.y; }
 
-    void draw()
-    {
-        for (uint32_t j = 0; j < size_.y; j++)
-        {
-            for (uint32_t i = 0; i < size_.x; i++)
-            {
-                switch(checkTile({i, j}))
-                {
-                    case ObjectType::Empty:
-                        std::printf("--");
-                        break;
-                    case ObjectType::Snake:
-                        std::printf("$$");
-                        break;
-                    case ObjectType::Apple:
-                        std::printf("**");
-                        break;
-                    default:
-                        assert(0 && "Drawing out of bounds");
-                        break;
-                }
-            }
-            std::printf("\n");
-        }
-    }
 };
 
 }

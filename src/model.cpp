@@ -34,6 +34,7 @@ void Snake::tryMove(Shift shift)
             break;
         case ObjectType::Apple:
             pos_.insert(pos_.begin(), new_pos);
+            field_->resetApple();
             break;
         case ObjectType::Snake:
             break;
