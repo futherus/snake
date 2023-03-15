@@ -3,8 +3,9 @@
 #include "model.h"
 #include "ncurses.h"
 #include <memory>
+#include <string>
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
     // std::unique_ptr<py::IView> v;
     // if (argc > 1 && argv[1] == std::string("--gui"))
@@ -15,25 +16,41 @@ int main(int argc, char* argv[])
     // v->draw();
 
     std::unique_ptr<py::Apple> apple(new py::Apple);
-    std::unique_ptr<py::Snake> snake(new py::Snake({
-        {10, 10},
-        {11, 10},
-        {12, 10},
-        {13, 10}
-    }));
+    std::unique_ptr<py::Snake> snake(new py::Snake({{1, 1},
+                                                    {2, 1},
+                                                    {3, 1},
+                                                    {4, 1}}));
 
     std::unique_ptr<py::Field> field(new py::Field(
         {20, 20},
         apple.get(),
-        snake.get()
-    ));
+        snake.get()));
 
     snake->setField(field.get());
     field->resetApple();
 
-    py::TuiView view(field.get(), snake.get(), apple.get());
-    // py::GuiView view(field.get(), snake.get(), apple.get());
-    view.run();
+    py::TuiView tui_view(field.get(), snake.get(), apple.get());
+    py::GuiView gui_view(field.get(), snake.get(), apple.get());
+
+    py::IView *view = &tui_view;
+
+    while (true)
+    {
+        switch (view->run())
+        {
+        case py::AppState::EXIT:
+            return 0;
+        case py::AppState::GUI:
+            view = &gui_view;
+            break;
+        case py::AppState::TUI:
+            view = &tui_view;
+            break;
+        default:
+            assert(0 && "Invalid run option");
+            break;
+        }
+    }
 
     // sf::Clock clock;
     // while (!sf::Keyboard::isKeyPressed(sf::Keyboard::Q))

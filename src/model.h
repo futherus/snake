@@ -27,33 +27,21 @@ enum class ObjectType
 class Apple final
 {
 private:
-    Vector2u pos_;
+    Vec2i pos_;
 
 public:
-    Apple(Vector2u pos = {0, 0})
+    Apple(Vec2i pos = {0, 0})
         : pos_(pos)
     {}
 
-    void setPos(Vector2u pos) { pos_ = pos; }
-    bool occupies(Vector2u pos) const { return pos_ == pos; }
+    void setPos(Vec2i pos) { pos_ = pos; }
+    bool occupies(Vec2i pos) const { return pos_ == pos; }
 };
 
 class Snake final
 {
-private:
-    std::vector<Vector2u> pos_;
-
-    Field* field_;
-
 public:
-    Snake(std::vector<Vector2u>&& pos)
-        : pos_(pos)
-        , field_()
-    {}
-
-    void setField(Field* field) { field_ = field; }
-
-    enum class Shift
+    enum class Direction
     {
         Left,
         Right,
@@ -61,32 +49,49 @@ public:
         Down
     };
 
-    bool occupies(Vector2u pos)
+private:
+    std::vector<Vec2i> pos_;
+
+    Field* field_;
+
+    Vec2i dir_shift_;
+
+public:
+    Snake(std::vector<Vec2i>&& pos)
+        : pos_(pos)
+        , field_()
+        , dir_shift_()
+    {}
+
+    void setField(Field* field) { field_ = field; }
+
+    bool occupies(Vec2i pos)
     {
         return std::find(pos_.begin(), pos_.end(), pos) != pos_.end();
     }
 
-    void tryMove(Shift shift);
+    void tryMove();
+    void setDirection(Direction direction);
 };
 
 class Field final
 {
 private:
-    Vector2u size_;
+    Vec2i size_;
 
     Apple* apple_;
     Snake* snake_;
 
 public:
-    Field(Vector2u size, Apple* apple, Snake* snake)
+    Field(Vec2i size, Apple* apple, Snake* snake)
         : size_(size)
         , apple_(apple)
         , snake_(snake)
     {}
 
-    Vector2u getSize() { return size_; }
+    Vec2i getSize() { return size_; }
 
-    ObjectType checkTile(Vector2u pos) const
+    ObjectType checkTile(Vec2i pos) const
     {
         if (!contains(pos))
         {
@@ -110,7 +115,7 @@ public:
 
     void resetApple()
     {$$
-        Vector2u new_pos;
+        Vec2i new_pos;
 
         do
         {
@@ -123,7 +128,8 @@ public:
         apple_->setPos(new_pos);
     }
 
-    bool contains(Vector2u pos) const { return pos.x < size_.x && pos.y < size_.y; }
+    bool contains(Vec2i pos) const { return 0 <= pos.x && pos.x < size_.x &&
+                                            0 <= pos.y && pos.y < size_.y; }
 
 };
 

@@ -3,24 +3,34 @@
 namespace py
 {
 
-void Snake::tryMove(Shift shift)
+void Snake::setDirection(Direction direction)
 {$$
-    Vector2u new_pos = pos_[0];
-    switch (shift)
+    switch (direction)
     {
-        case Shift::Left:
-            new_pos.x--;
+        case Direction::Left:
+            dir_shift_ = {-1, 0};
             break;
-        case Shift::Right:
-            new_pos.x++;
+        case Direction::Right:
+            dir_shift_ = {1, 0};
             break;
-        case Shift::Up:
-            new_pos.y--;
+        case Direction::Up:
+            dir_shift_ = {0, -1};
             break;
-        case Shift::Down:
-            new_pos.y++;
+        case Direction::Down:
+            dir_shift_ = {0, 1};
+            break;
+        default:
+            assert(0 && "not handled Direction");
             break;
     }
+}
+
+void Snake::tryMove()
+{$$
+    if (dir_shift_ == Vec2i{0, 0})
+        return;
+
+    Vec2i new_pos = pos_[0] + dir_shift_;
 
     ObjectType tile = field_->checkTile(new_pos);
 
@@ -39,7 +49,7 @@ void Snake::tryMove(Shift shift)
         case ObjectType::Snake:
             break;
         default:
-            assert(0 && "Not handled ObjectType");
+            assert(0 && "not handled ObjectType");
             break;
     }
 }

@@ -1,28 +1,34 @@
-#ifndef VECTOR2_H
-#define VECTOR2_H
+#ifndef VEC2_H
+#define VEC2_H
 
 #include <cstdint>
 #include <SFML/System/Vector2.hpp>
 
 template <typename T>
-class Vector2
+class Vec2
 {
 public:
     T x;
     T y;
 
-    Vector2() = default;
+    Vec2() = default;
 
-    Vector2(T X, T Y)
+    Vec2(T X, T Y)
         : x(X), y(Y)
     {}
 
-    Vector2 operator-() const
+    template <typename U>
+    explicit Vec2(const Vec2<U>& vector)
+        : x(static_cast<T>(vector.x))
+        , y(static_cast<T>(vector.y))
+    {}
+
+    Vec2 operator-() const
     {
         return {-x, -y};
     }
 
-    Vector2& operator+=(const Vector2<T>& rhs)
+    Vec2& operator+=(const Vec2<T>& rhs)
     {
         x += rhs.x;
         y += rhs.y;
@@ -30,7 +36,7 @@ public:
         return *this;
     }
 
-    Vector2& operator-=(const Vector2<T>& rhs)
+    Vec2& operator-=(const Vec2<T>& rhs)
     {
         x -= rhs.x;
         y -= rhs.y;
@@ -38,7 +44,7 @@ public:
         return *this;
     }
 
-    Vector2& operator*=(const T& rhs)
+    Vec2& operator*=(const T& rhs)
     {
         x *= rhs;
         y *= rhs;
@@ -46,7 +52,7 @@ public:
         return *this;
     }
 
-    Vector2& operator/=(const T& rhs)
+    Vec2& operator/=(const T& rhs)
     {
         x /= rhs;
         y /= rhs;
@@ -54,7 +60,7 @@ public:
         return *this;
     }
 
-    bool operator==(const Vector2& rhs) const
+    bool operator==(const Vec2& rhs) const
     {
         return (x == rhs.x) && (y == rhs.y);
     }
@@ -64,42 +70,42 @@ public:
         return {x, y};
     }
 
-    Vector2(const sf::Vector2<T>& that)
+    Vec2(const sf::Vector2<T>& that)
         : x(that.x), y(that.y)
     {}
 };
 
 template <typename T>
-inline Vector2<T> operator+(Vector2<T> lhs, const Vector2<T>& rhs)
+inline Vec2<T> operator+(Vec2<T> lhs, const Vec2<T>& rhs)
 {
     return lhs += rhs;
 }
 
 template <typename T>
-inline Vector2<T> operator-(Vector2<T> lhs, const Vector2<T>& rhs)
+inline Vec2<T> operator-(Vec2<T> lhs, const Vec2<T>& rhs)
 {
     return lhs -= rhs;
 }
 
 template <typename T>
-inline Vector2<T> operator*(Vector2<T> lhs, const T& rhs)
+inline Vec2<T> operator*(Vec2<T> lhs, const T& rhs)
 {
     return lhs *= rhs;
 }
 
 template <typename T>
-inline Vector2<T> operator*(const T& lhs, Vector2<T> rhs)
+inline Vec2<T> operator*(const T& lhs, Vec2<T> rhs)
 {
     return rhs *= lhs;
 }
 
 template <typename T>
-inline Vector2<T> operator/(Vector2<T> lhs, const T& rhs)
+inline Vec2<T> operator/(Vec2<T> lhs, const T& rhs)
 {
     return lhs /= rhs;
 }
 
-using Vector2u = Vector2<uint32_t>;
-using Vector2i = Vector2<int32_t>;
+using Vec2u = Vec2<uint32_t>;
+using Vec2i = Vec2<int32_t>;
 
-#endif // VECTOR2_H
+#endif // VEC2_H

@@ -3,6 +3,8 @@
 
 #include <iostream>
 #include <ncurses.h>
+#include <poll.h>
+#include <unistd.h>
 #include <assert.h>
 #include <SFML/Graphics.hpp>
 
@@ -10,6 +12,13 @@
 
 namespace py
 {
+
+enum class AppState
+{
+    EXIT,
+    TUI,
+    GUI
+};
 
 class IView
 {
@@ -27,93 +36,114 @@ public:
         , apple_(apple)
     {}
 
+    IView(const IView& that) = delete;
+    IView(IView&& that) = delete;
+    IView& operator=(const IView& that) = delete;
+    IView& operator=(IView&& that) = delete;
     virtual ~IView() = default;
 
-    virtual void draw() = 0;
+    virtual AppState run() = 0;
 };
 
 class GuiView final : public IView
 {
 private:
-    std::unique_ptr<sf::RenderWindow> win_;
-
-    uint32_t tile_sz_;
-    Vector2u win_pos_;
-    Vector2u win_size_;
+    int32_t tile_sz_;
 
 public:
     GuiView(Field* field,
             Snake* snake,
             Apple* apple)
         : IView(field, snake, apple)
-        , win_()
         , tile_sz_(16)
-        , win_pos_()
-        , win_size_()
     {}
 
-    void run()
-    {
-        Vector2u size{800, 600};
-        win_.reset(new sf::RenderWindow(sf::VideoMode(size.x, size.y), "My window"));
+    GuiView(const GuiView& that) = delete;
+    GuiView(GuiView&& that) = delete;
+    GuiView& operator=(const GuiView& that) = delete;
+    GuiView& operator=(GuiView&& that) = delete;
+    ~GuiView() override = default;
 
-        win_size_ = field_->getSize() * tile_sz_;
-        win_pos_ = {(size.x - win_size_.x) / 2, (size.y - win_size_.y) / 2};
+    AppState run() override
+    {
+        Vec2i size{800, 600};
+        std::unique_ptr<sf::RenderWindow> win =
+            std::make_unique<sf::RenderWindow>(sf::VideoMode(size.x, size.y), "My window");
+
+        Vec2i win_size = field_->getSize() * tile_sz_;
+        Vec2i win_pos = {(size.x - win_size.x) / 2, (size.y - win_size.y) / 2};
+
+        // FIXME
+        sf::Clock clock;
 
         // run the program as long as the window is open
-        while (win_->isOpen())
+        while (win->isOpen())
         {
             // check all the window's events that were triggered since the last iteration of the loop
             sf::Event event;
-            while (win_->pollEvent(event))
+            while (win->pollEvent(event))
             {
                 switch (event.type)
                 {
                     // "close requested" event: we close the window
-                    case  sf::Event::Closed:
+                    case sf::Event::Closed:
                     {
-                        win_->close();
-                        break;
+                        return AppState::EXIT;
                     }
                     case sf::Event::KeyPressed:
                     {
                         switch (event.key.code)
                         {
                             case sf::Keyboard::Left:
-                                snake_->tryMove(py::Snake::Shift::Left);
+                                snake_->setDirection(py::Snake::Direction::Left);
                                 break;
                             case sf::Keyboard::Right:
-                                snake_->tryMove(py::Snake::Shift::Right);
+                                snake_->setDirection(py::Snake::Direction::Right);
                                 break;
                             case sf::Keyboard::Up:
-                                snake_->tryMove(py::Snake::Shift::Up);
+                                snake_->setDirection(py::Snake::Direction::Up);
                                 break;
                             case sf::Keyboard::Down:
-                                snake_->tryMove(py::Snake::Shift::Down);
+                                snake_->setDirection(py::Snake::Direction::Down);
                                 break;
+                            case sf::Keyboard::C:
+                                return AppState::TUI;
+                            case sf::Keyboard::Q:
+                                return AppState::EXIT;
                             default:
                                 break;
                         }
 
                         break;
                     }
+                    default:
+                    {
+                        break;
+                    }
                 }
- 
             }
 
-            win_->clear();
+            if (clock.getElapsedTime().asMilliseconds() > 500)
+            {
+                clock.restart();
+                snake_->tryMove();
+            }
 
-            draw();
+            win->clear();
 
-            win_->display();
+            draw(win.get(), win_pos, win_size);
+
+            win->display();
         }
 
-        win_.reset(nullptr);
+        assert(0 && "fallthrough");
+        return AppState::EXIT;
     }
 
-    void draw() override
+private:
+    void draw(sf::RenderWindow* win, Vec2i win_pos, Vec2i win_size)
     {
-        Vector2u sz = field_->getSize();
+        Vec2i sz = field_->getSize();
 
         for (uint32_t j = 0; j < sz.y; j++)
         {
@@ -139,9 +169,9 @@ public:
 
                 sf::RectangleShape tile({tile_sz_, tile_sz_});
                 tile.setFillColor(col);
-                tile.setPosition(win_pos_.x + i * tile_sz_, 
-                                 win_pos_.y + j * tile_sz_);
-                win_->draw(tile);
+                tile.setPosition(win_pos.x + i * tile_sz_, 
+                                 win_pos.y + j * tile_sz_);
+                win->draw(tile);
             }
         }
     }
@@ -151,8 +181,8 @@ class TuiView final : public IView
 {
 private:
     WINDOW* win_;
-    Vector2u win_pos_;
-    Vector2u win_size_;
+    Vec2i win_pos_;
+    Vec2i win_size_;
 
 public:
     TuiView(Field* field,
@@ -160,9 +190,17 @@ public:
             Apple* apple)
         : IView(field, snake, apple)
         , win_()
+        , win_pos_()
+        , win_size_()
     {}
 
-    void run()
+    TuiView(const TuiView& that) = delete;
+    TuiView(TuiView&& that) = delete;
+    TuiView& operator=(const TuiView& that) = delete;
+    TuiView& operator=(TuiView&& that) = delete;
+    ~TuiView() override = default;
+
+    AppState run() override
     {
         initscr();
         cbreak();
@@ -170,8 +208,8 @@ public:
         keypad(stdscr, TRUE);
         refresh();
 
-        Vector2u sz = field_->getSize();
-        win_size_ = sz + Vector2u{2, 2};
+        Vec2i sz = field_->getSize();
+        win_size_ = sz + Vec2i{2, 2};
 
         win_pos_.x = (COLS  - win_size_.x) / 2;
         win_pos_.y = (LINES - win_size_.y) / 2;
@@ -180,43 +218,71 @@ public:
         box(win_, 0, 0);
         draw();
 
-        int ch = 0;
-        while((ch = getch()) != 'q')
-        {   switch(ch)
+        struct pollfd fds[1];
+        fds[0].fd = STDIN_FILENO;
+        fds[0].events = POLLIN;
+
+        // FIXME:
+        sf::Clock clock;
+
+        while(true)
+        {
+            int timeout = 500 - clock.getElapsedTime().asMilliseconds();
+            if (timeout < 0)
+                timeout = 0;
+
+            int ret = poll(fds, 1, timeout);
+            if (ret > 0)
             {
-                case KEY_LEFT:
-                    snake_->tryMove(py::Snake::Shift::Left);
-                    draw();
-                    break;
-                case KEY_RIGHT:
-                    snake_->tryMove(py::Snake::Shift::Right);
-                    draw();
-                    break;
-                case KEY_UP:
-                    snake_->tryMove(py::Snake::Shift::Up);
-                    draw();
-                    break;
-                case KEY_DOWN:
-                    snake_->tryMove(py::Snake::Shift::Down);
-                    draw();
-                    break;
-                default:
-                    break;
+                int ch = getch();
+                switch(ch)
+                {
+                    case KEY_LEFT:
+                        snake_->setDirection(py::Snake::Direction::Left);
+                        break;
+                    case KEY_RIGHT:
+                        snake_->setDirection(py::Snake::Direction::Right);
+                        break;
+                    case KEY_UP:
+                        snake_->setDirection(py::Snake::Direction::Up);
+                        break;
+                    case KEY_DOWN:
+                        snake_->setDirection(py::Snake::Direction::Down);
+                        break;
+                    case 'c':
+                        delwin(win_);
+                        endwin();
+                        return AppState::GUI;
+                    case 'q':
+                        delwin(win_);
+                        endwin();
+                        return AppState::EXIT;
+                    default:
+                        break;
+                }
+            }
+
+            if (clock.getElapsedTime().asMilliseconds() > 500)
+            {
+                clock.restart();
+                snake_->tryMove();
+                draw();
             }
         }
 
         delwin(win_);
         endwin();
+        return AppState::EXIT;
     }
 
 private:
-    void draw() override
+    void draw()
     {
-        Vector2u sz = field_->getSize();
+        Vec2i sz = field_->getSize();
 
-        for (uint32_t j = 0; j < sz.y; j++)
+        for (int32_t j = 0; j < sz.y; j++)
         {
-            for (uint32_t i = 0; i < sz.x; i++)
+            for (int32_t i = 0; i < sz.x; i++)
             {
                 char ch = 0;
                 switch (field_->checkTile({i, j}))
@@ -241,7 +307,7 @@ private:
         }
 
         wrefresh(win_);
-        // refresh();
+        refresh();
     }
 };
 
