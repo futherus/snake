@@ -21,8 +21,7 @@ public:
     IView& operator=(IView&& that) = delete;
     virtual ~IView() = default;
 
-    virtual void draw( const Field* field) = 0;
-    virtual void display() = 0;
+    virtual void draw( const Field* field, bool is_changed) = 0;
 };
 
 }

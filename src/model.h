@@ -137,7 +137,7 @@ public:
     //     return std::find(pos_.begin(), pos_.end(), pos) != pos_.end();
     // }
 
-    void tryMove();
+    bool tryMove();
     void setDirection(Direction direction);
 };
 
@@ -185,16 +185,22 @@ public:
         inactive_apples_.clear();
     }
 
-    void turn()
+    bool turn()
     {
+        bool is_changed = false;
         // FIXME: remove apple reseting from tryMove
         for (auto& snake : snakes_)
-            snake->tryMove();
+            is_changed = is_changed || snake->tryMove();
 
         for (auto* apple : inactive_apples_)
+        {
             apple->reset();
+            is_changed = true;
+        }
 
         inactive_apples_.clear();
+
+        return is_changed;
     }
 
     Field* getField() { return field_.get(); }

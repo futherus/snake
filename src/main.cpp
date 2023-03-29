@@ -100,6 +100,7 @@ $$
     sf::Clock clock;
 
     bool exit = false;
+    bool is_changed = true;
     while (!exit)
     {
         py::Event event;
@@ -111,14 +112,14 @@ $$
                 exit = true;
         }
 
-        if (clock.getElapsedTime().asMilliseconds() > 500)
+        if (clock.getElapsedTime().asMilliseconds() > 250)
         {
             clock.restart();
-            model.turn();
+            is_changed = model.turn();
         }
 
-        vm.draw( model.getField());
-        vm.display();
+        vm.draw( model.getField(), is_changed);
+        is_changed = false;
     }
 
     return 0;

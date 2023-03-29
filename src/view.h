@@ -139,7 +139,7 @@ public:
     }
 #endif
 
-    void draw( const Field* field) override
+    void draw( const Field* field, bool is_changed) override
     {
         Vec2i field_sz = field->getSize();
         Vec2i pixels_sz = field_sz * tile_sz_;
@@ -174,10 +174,7 @@ public:
                 win_->draw( tile);
             }
         }
-    }
 
-    void display() override
-    {
         win_->display();
     }
 
@@ -228,38 +225,159 @@ public:
 
 class TuiView final : public SwitchableView
 {
+private:
+    WINDOW* win_;
+    Vec2i win_pos_;
+    Vec2i win_size_;
+
+    Vec2i field_size_;
+
 public:
     TuiView() = default;
 
-    void draw(const Field* field) override
+    void draw( const Field* field, bool is_changed) override
     {
-        std::cerr << "Unimplemented draw\n";
-    }
+        Vec2i sz = field->getSize();
+        if (!win_ || field_size_ != sz)
+        {
+            if (win_)
+                delwin( win_);
 
-    void display() override
-    {
-        std::cerr << "Unimplemented display\n";
+            Vec2i new_size = sz + Vec2i{2, 2};
+
+            Vec2i new_pos{
+                (COLS  - new_size.x) / 2,
+                (LINES - new_size.y) / 2
+            };
+
+            win_ = newwin( new_size.y, new_size.x, new_pos.y, new_pos.x);
+            box( win_, 0, 0);
+
+            win_size_ = new_size;
+            win_pos_ = new_pos;
+            field_size_ = sz;
+
+            is_changed = true;
+        }
+
+        if (is_changed)
+        {
+            for (int32_t j = 0; j < sz.y; j++)
+            {
+                for (int32_t i = 0; i < sz.x; i++)
+                {
+                    char ch = 0;
+                    switch (field->checkTile( {i, j})->getType())
+                    {
+                        case ObjectType::Empty:
+                            ch = '-';
+                            break;
+                        case ObjectType::Apple:
+                            ch = '*';
+                            break;
+                        case ObjectType::Snake:
+                            ch = '#';
+                            break;
+                        case ObjectType::OutOfBorders:
+                        default:
+                            assert(0 && "out of borders");
+                            break;
+                    }
+
+                    mvwaddch( win_, 1 + j, 1 + i, ch);
+                }
+            }
+
+            refresh();
+            wrefresh( win_);
+        }
     }
 
     void activate() override
     {
-        std::cerr << "Unimplemented activate\n";
+        initscr();
+        cbreak();
+        noecho();
+        keypad( stdscr, TRUE);
     }
 
     void deactivate() override
     {
-        std::cerr << "Unimplemented deactivate\n";
+        delwin( win_);
+        endwin();
     }
 
-    bool pollEvent(sf::Event&)
+    bool pollEvent( sf::Event& event)
     {
-        std::cerr << "Unimplemented pollEvent\n";
+        struct pollfd fds[1];
+        fds[0].fd = STDIN_FILENO;
+        fds[0].events = POLLIN;
+
+        if (poll( fds, 1, 0) > 0)
+        {
+            int ch = getch();
+
+            switch (ch)
+            {
+                case KEY_LEFT:
+                    event.type = sf::Event::KeyPressed;
+                    event.key.code = sf::Keyboard::Left;
+                    break;
+                case KEY_RIGHT:
+                    event.type = sf::Event::KeyPressed;
+                    event.key.code = sf::Keyboard::Right;
+                    break;
+                case KEY_UP:
+                    event.type = sf::Event::KeyPressed;
+                    event.key.code = sf::Keyboard::Up;
+                    break;
+                case KEY_DOWN:
+                    event.type = sf::Event::KeyPressed;
+                    event.key.code = sf::Keyboard::Down;
+                    break;
+                case 'c':
+                    event.type = sf::Event::KeyPressed;
+                    event.key.code = sf::Keyboard::C;
+                    break;
+                case 'q':
+                    event.type = sf::Event::KeyPressed;
+                    event.key.code = sf::Keyboard::Q;
+                    break;
+                default:
+                    assert( 0 && "Unimplemented key");
+                    break;
+            }
+
+            return true;
+        }
+
         return false;
     }
 
-    AppState onEvent(sf::Event&)
+    AppState onEvent( sf::Event& event) override
     {
-        std::cerr << "Unimplemented onEvent\n";
+        switch ( event.type)
+        {
+            case sf::Event::KeyPressed:
+            {
+                switch ( event.key.code)
+                {
+                    case sf::Keyboard::C:
+                        return AppState::GUI;
+                    case sf::Keyboard::Q:
+                        return AppState::EXIT;
+                    default:
+                        break;
+                }
+
+                break;
+            }
+            default:
+            {
+                break;
+            }
+        }
+
         return AppState::RUNNING;
     }
 };
@@ -411,20 +529,20 @@ private:
 public:
     ViewManager()
         : gui{ std::make_unique<GuiView>( Vec2i{100, 100}, Vec2i{800, 600})}
-        , tui{}
-        , active_{ gui.get()}
+        , tui{ std::make_unique<TuiView>()}
+        , active_{ tui.get()}
     {
         active_->activate();
     }
 
-    void draw( const Field* field) override
+    ~ViewManager()
     {
-        active_->draw( field);
+        active_->deactivate();
     }
 
-    void display() override
+    void draw( const Field* field, bool is_changed) override
     {
-        active_->display();
+        active_->draw( field, is_changed);
     }
 
     bool pollEvent( Event& event)

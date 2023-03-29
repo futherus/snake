@@ -39,10 +39,10 @@ void Snake::setDirection(Direction direction)
     }
 }
 
-void Snake::tryMove()
+bool Snake::tryMove()
 {$$
     if (dir_shift_ == Vec2i{0, 0})
-        return;
+        return false;
 
     Vec2i new_pos = pos_[0] + dir_shift_;
     Field* field = model_->getField();
@@ -51,24 +51,29 @@ void Snake::tryMove()
     switch (tile->getType())
     {
         case ObjectType::OutOfBorders:
-            break;
+            return false;
+
         case ObjectType::Empty:
             field->release( pos_.back());
             pos_.pop_back();
             pos_.insert(pos_.begin(), new_pos);
             field->occupy( new_pos, this);
-            break;
+            return true;
+
         case ObjectType::Apple:
             static_cast<Apple*>( tile)->destroy();
             pos_.insert(pos_.begin(), new_pos);
             field->occupy( new_pos, this);
-            break;
+            return true;
+
         case ObjectType::Snake:
-            break;
+            return false;
         default:
             assert(0 && "not handled ObjectType");
-            break;
+            return false;
     }
+
+    assert( 0 && "fallthrough");
 }
 
 void Apple::destroy()
