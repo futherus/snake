@@ -7,6 +7,44 @@
 #include <memory>
 #include <string>
 
+int DELAY = 300;
+
+void checkDelay( py::Event& event)
+{
+    if (event.type == py::Event::KeyPressed)
+    {
+        switch (event.key.code)
+        {
+            case py::Keyboard::Num1:
+                DELAY = 100;
+                break;
+            case py::Keyboard::Num2:
+                DELAY = 200;
+                break;
+            case py::Keyboard::Num3:
+                DELAY = 300;
+                break;
+            case py::Keyboard::Num4:
+                DELAY = 400;
+                break;
+            case py::Keyboard::Num5:
+                DELAY = 500;
+                break;
+            case py::Keyboard::Num6:
+                DELAY = 600;
+                break;
+            case py::Keyboard::Num7:
+                DELAY = 700;
+                break;
+            case py::Keyboard::Num8:
+                DELAY = 800;
+                break;
+            default:
+                break;
+        }
+    }
+}
+
 int main(int argc, char *argv[])
 {
     // std::unique_ptr<py::IView> v;
@@ -58,31 +96,46 @@ int main(int argc, char *argv[])
 #endif
 
 $$
-    py::HumanControl ctl1{py::Keyboard::Up,
-                         py::Keyboard::Left,
-                         py::Keyboard::Down,
-                         py::Keyboard::Right
-    };
-
-    py::HumanControl ctl2{py::Keyboard::W,
-                         py::Keyboard::A,
-                         py::Keyboard::S,
-                         py::Keyboard::D
-    };
-
-    // py::AiControl ctl2{ 0};
-
     py::Model model;
-    py::Snake* snake1 = model.createSnake();
-    py::Snake* snake2 = model.createSnake();
+
+    // py::HumanControl ctl1{ &model,
+    //                        py::Keyboard::Up,
+    //                        py::Keyboard::Left,
+    //                        py::Keyboard::Down,
+    //                        py::Keyboard::Right
+    // };
+
+    // py::HumanControl ctl2{ &model,
+    //                        py::Keyboard::W,
+    //                        py::Keyboard::A,
+    //                        py::Keyboard::S,
+    //                        py::Keyboard::D
+    // };
+
+    py::AiControl ctl3{ &model};
+    py::AiControl ctl4{ &model};
+    py::AiControl ctl5{ &model};
+    py::AiControl ctl6{ &model};
+
+
+    // py::Snake* snake1 = model.createSnake();
+    // py::Snake* snake2 = model.createSnake();
+    py::Snake* snake3 = model.createSnake();
+    py::Snake* snake4 = model.createSnake();
+    py::Snake* snake5 = model.createSnake();
+    py::Snake* snake6 = model.createSnake();
 
     model.createApple();
     model.createApple();
     model.createApple();
 
 $$
-    ctl1.setSnake( snake1);
-    ctl2.setSnake( snake2);
+    // ctl1.setSnake( snake1);
+    // ctl2.setSnake( snake2);
+    ctl3.setSnake( snake3);
+    ctl4.setSnake( snake4);
+    ctl5.setSnake( snake5);
+    ctl6.setSnake( snake6);
 
 $$
     model.init();
@@ -97,15 +150,21 @@ $$
         py::Event event;
         while (vm.pollEvent( event))
         {
-            ctl1.onEvent( event);
-            ctl2.onEvent( event);
+            // ctl1.onEvent( event);
+            // ctl2.onEvent( event);
+            checkDelay( event);
             if (vm.onEvent( event) == py::AppState::EXIT)
                 exit = true;
         }
 
-        if (clock.getElapsedTime().asMilliseconds() > 250)
+        if (clock.getElapsedTime().asMilliseconds() > DELAY)
         {
             clock.restart();
+            ctl3.onTurn();
+            ctl4.onTurn();
+            ctl5.onTurn();
+            ctl6.onTurn();
+
             is_changed = model.turn();
         }
 

@@ -124,6 +124,8 @@ public:
             $M("\n");
         }
     }
+
+    const Apple* findClosest( Vec2i pos) const;
 };
 
 
@@ -135,18 +137,17 @@ private:
     Model* model_;
 
     Vec2i pos_;
-    bool is_active_;
 
 public:
     Apple( Model* model)
         : Object{ ObjectType::Apple}
         , model_{ model}
         , pos_{}
-        , is_active_{ false}
     {}
 
     void destroy();
-    void reset();
+    Vec2i getPosition() const { return pos_; }
+    void setPosition( Vec2i pos);
 };
 
 class Snake final : public Object
@@ -162,18 +163,28 @@ public:
 
 private:
     Model* model_;
+    int id_;
 
     std::vector<Vec2i> pos_;
 
     Vec2i dir_shift_;
 
 public:
-    Snake( Model* model);
+    Snake( Model* model, int id);
 
-    void clear();
+    int getId() const { return id_; }
+    void destroy();
     void addPosition( Vec2i pos);
+    const std::vector<Vec2i>& getPosition() const { return pos_; }
     bool tryMove();
-    void setDirection(Direction direction);
+    void setDirection( Direction direction);
+    void setDirection( Vec2i shift)
+    {
+        assert( shift.x == 0 || shift.x == 1 || shift.x == -1
+                || shift.y == 0 || shift.y == 1 || shift.y == -1);
+
+        dir_shift_ = shift;
+    }
 };
 
 class Model final
@@ -195,8 +206,8 @@ public:
 
     Snake* createSnake()
     {
-        snakes_.push_back( std::make_unique<Snake>( this));
-        inactive_snakes_.push_back( snakes_.back().get());
+        snakes_.push_back( std::make_unique<Snake>( this, snakes_.size()));
+        snakes_.back().get()->destroy();
 
         return snakes_.back().get();
     }
@@ -204,7 +215,6 @@ public:
     void resetSnake( Snake* snake)
     {
         Vec2i sz = field_->getSize();
-        snake->clear();
 
         Vec2i pos;
         do
@@ -234,9 +244,22 @@ public:
     Apple* createApple()
     {
         apples_.push_back( std::make_unique<Apple>( this));
-        addInactive( apples_.back().get());
+        apples_.back().get()->destroy();
 
         return apples_.back().get();
+    }
+
+    void resetApple( Apple* apple)
+    {
+        Vec2i sz = field_->getSize();
+        Vec2i pos;
+        do
+        {
+            pos = { uniform_distr( 0, sz.x), uniform_distr( 0, sz.y)};
+        }
+        while (field_->checkTile( pos)->getType() != ObjectType::Empty);
+
+        apple->setPosition( pos);
     }
 
     void addInactive( Apple* apple)
@@ -252,7 +275,7 @@ public:
     void init()
     {
         for (auto* apple : inactive_apples_)
-            apple->reset();
+            resetApple( apple);
 
         for (auto* snake : inactive_snakes_)
             resetSnake( snake);
@@ -266,19 +289,19 @@ public:
         bool is_changed = false;
         for (auto& snake : snakes_)
         {
-            snake->tryMove();
-            is_changed = true;
+            is_changed = snake->tryMove() || is_changed;
         }
 
         for (auto* apple : inactive_apples_)
         {
-            apple->reset();
+            resetApple( apple);
             is_changed = true;
         }
 
         for (auto* snake : inactive_snakes_)
         {
             resetSnake( snake);
+            is_changed = true;
         }
 
         inactive_snakes_.clear();
@@ -288,6 +311,7 @@ public:
     }
 
     Field* getField() { return field_.get(); }
+    const Field* getField() const { return field_.get(); }
 };
 
 }

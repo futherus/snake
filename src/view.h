@@ -147,6 +147,20 @@ public:
     }
 };
 
+const int EMPTY_PAIR{1};
+const int APPLE_PAIR{2};
+const int SNAKE_PAIR_BASE{3};
+
+const int SNAKE_COLORS[] {
+    COLOR_GREEN,
+    COLOR_BLUE,
+    COLOR_CYAN,
+    COLOR_MAGENTA,
+    COLOR_YELLOW
+};
+
+const int COLOR_GRAY{16};
+
 class TuiView final : public SwitchableView
 {
 private:
@@ -192,25 +206,41 @@ public:
                 for (int32_t i = 0; i < sz.x; i++)
                 {
                     char ch = 0;
-                    switch (field->checkTile( {i, j})->getType())
+                    int color = EMPTY_PAIR;
+                    Object* obj = field->checkTile( {i, j});
+                    switch (obj->getType())
                     {
                         case ObjectType::Empty:
+                        {
                             ch = '-';
+                            color = EMPTY_PAIR;
                             break;
+                        }
                         case ObjectType::Apple:
+                        {
                             ch = '*';
+                            color = APPLE_PAIR;
                             break;
+                        }
                         case ObjectType::Snake:
+                        {
                             ch = '#';
+                            Snake* snake = static_cast<Snake*>( obj);
+                            color = SNAKE_PAIR_BASE
+                                    + snake->getId() % (sizeof(SNAKE_COLORS) / sizeof(int));
                             break;
+                        }
                         case ObjectType::OutOfBorders:
                         default:
+                        {
                             assert(0 && "out of borders");
                             break;
+                        }
                     }
-
+                    wattron(  win_, COLOR_PAIR( color));
                     mvwaddch( win_, 1 + j, 1 + 2 * i, ch);
                     mvwaddch( win_, 1 + j, 2 + 2 * i, ' ');
+                    wattroff( win_, COLOR_PAIR( color));
                 }
             }
 
@@ -222,9 +252,16 @@ public:
     void activate() override
     {
         initscr();
+        start_color();
         cbreak();
         noecho();
         keypad( stdscr, TRUE);
+
+        init_pair( EMPTY_PAIR, COLOR_BLACK, COLOR_GRAY);
+        init_pair( APPLE_PAIR, COLOR_RED,   COLOR_GRAY);
+
+        for (int col = 0; col < sizeof(SNAKE_COLORS) / sizeof(int); col++)
+            init_pair( SNAKE_PAIR_BASE + col, SNAKE_COLORS[col], COLOR_GRAY);
     }
 
     void deactivate() override
@@ -286,6 +323,47 @@ public:
                     event.type = sf::Event::KeyPressed;
                     event.key.code = sf::Keyboard::Q;
                     break;
+                case '0':
+                    event.type = sf::Event::KeyPressed;
+                    event.key.code = sf::Keyboard::Num0;
+                    break;
+                case '1':
+                    event.type = sf::Event::KeyPressed;
+                    event.key.code = sf::Keyboard::Num1;
+                    break;
+                case '2':
+                    event.type = sf::Event::KeyPressed;
+                    event.key.code = sf::Keyboard::Num2;
+                    break;
+                case '3':
+                    event.type = sf::Event::KeyPressed;
+                    event.key.code = sf::Keyboard::Num3;
+                    break;
+                case '4':
+                    event.type = sf::Event::KeyPressed;
+                    event.key.code = sf::Keyboard::Num4;
+                    break;
+                case '5':
+                    event.type = sf::Event::KeyPressed;
+                    event.key.code = sf::Keyboard::Num5;
+                    break;
+                case '6':
+                    event.type = sf::Event::KeyPressed;
+                    event.key.code = sf::Keyboard::Num6;
+                    break;
+                case '7':
+                    event.type = sf::Event::KeyPressed;
+                    event.key.code = sf::Keyboard::Num7;
+                    break;
+                case '8':
+                    event.type = sf::Event::KeyPressed;
+                    event.key.code = sf::Keyboard::Num8;
+                    break;
+                case '9':
+                    event.type = sf::Event::KeyPressed;
+                    event.key.code = sf::Keyboard::Num9;
+                    break;
+
                 default:
                     assert( 0 && "Unimplemented key");
                     break;
@@ -473,7 +551,7 @@ public:
     ViewManager()
         : gui{ std::make_unique<GuiView>( Vec2i{100, 100}, Vec2i{800, 600})}
         , tui{ std::make_unique<TuiView>()}
-        , active_{ tui.get()}
+        , active_{ gui.get()}
     {
         active_->activate();
     }
