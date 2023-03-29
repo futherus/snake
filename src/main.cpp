@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include "view.h"
 #include "model.h"
+#include "control.h"
+#include "view.h"
 #include "ncurses.h"
 #include <memory>
 #include <string>
@@ -15,6 +17,7 @@ int main(int argc, char *argv[])
 
     // v->draw();
 
+#if 0
     std::unique_ptr<py::Apple> apple(new py::Apple);
     std::unique_ptr<py::Snake> snake(new py::Snake({{1, 1},
                                                     {2, 1},
@@ -52,35 +55,71 @@ int main(int argc, char *argv[])
         }
     }
 
-    // sf::Clock clock;
-    // while (!sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
-    // {
-    //     if (clock.getElapsedTime().asMilliseconds() > 100)
-    //     {
-    //         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
-    //         {
-    //             snake->tryMove(py::Snake::Shift::Left);
-    //             clock.restart();
-    //         }
-    //         else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
-    //         {
-    //             snake->tryMove(py::Snake::Shift::Right);
-    //             clock.restart();
-    //         }
-    //         else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
-    //         {
-    //             snake->tryMove(py::Snake::Shift::Up);
-    //             clock.restart();
-    //         }
-    //         else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
-    //         {
-    //             snake->tryMove(py::Snake::Shift::Down);
-    //             clock.restart();
-    //         }
-    //     }
-    //     refresh();
-    //     field->draw();
-    // }
+#endif
+
+$$
+    py::HumanControl ctl1{py::Keyboard::Up,
+                         py::Keyboard::Left,
+                         py::Keyboard::Down,
+                         py::Keyboard::Right
+    };
+
+    // py::HumanControl ctl2{py::Keyboard::W,
+    //                      py::Keyboard::A,
+    //                      py::Keyboard::S,
+    //                      py::Keyboard::D
+    // };
+
+    py::AiControl ctl2{ 0};
+
+    py::Model model;
+    py::Snake* snake1 = model.createSnake( {{1, 1},
+                                           {2, 1},
+                                           {3, 1},
+                                           {4, 1}}
+    );
+
+    py::Snake* snake2 = model.createSnake( {{1, 3},
+                                           {2, 3},
+                                           {3, 3},
+                                           {4, 3}}
+    );
+
+    model.createApple();
+    model.createApple();
+    model.createApple();
+
+$$
+    ctl1.setSnake( snake1);
+    ctl2.setSnake( snake2);
+
+$$
+    model.init();
+$$
+    py::ViewManager vm;
+    sf::Clock clock;
+
+    bool exit = false;
+    while (!exit)
+    {
+        py::Event event;
+        while (vm.pollEvent( event))
+        {
+            ctl1.onEvent( event);
+            ctl2.onEvent( event);
+            if (vm.onEvent( event) == py::AppState::EXIT)
+                exit = true;
+        }
+
+        if (clock.getElapsedTime().asMilliseconds() > 500)
+        {
+            clock.restart();
+            model.turn();
+        }
+
+        vm.draw( model.getField());
+        vm.display();
+    }
 
     return 0;
 }

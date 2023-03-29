@@ -3,6 +3,20 @@
 namespace py
 {
 
+Object Field::empty_{ ObjectType::Empty};
+Object Field::out_of_borders_{ ObjectType::OutOfBorders};
+
+Snake::Snake( Model* model,
+              const std::vector<Vec2i>& pos)
+    : Object{ ObjectType::Snake}
+    , model_{ model}
+    , pos_{ pos}
+    , dir_shift_{}
+{
+    for (auto& pos : pos_)
+        model_->getField()->occupy( pos, this);
+}
+
 void Snake::setDirection(Direction direction)
 {$$
     switch (direction)
@@ -31,20 +45,23 @@ void Snake::tryMove()
         return;
 
     Vec2i new_pos = pos_[0] + dir_shift_;
+    Field* field = model_->getField();
+    Object* tile = field->checkTile(new_pos);
 
-    ObjectType tile = field_->checkTile(new_pos);
-
-    switch (tile)
+    switch (tile->getType())
     {
         case ObjectType::OutOfBorders:
             break;
         case ObjectType::Empty:
+            field->release( pos_.back());
             pos_.pop_back();
             pos_.insert(pos_.begin(), new_pos);
+            field->occupy( new_pos, this);
             break;
         case ObjectType::Apple:
+            static_cast<Apple*>( tile)->destroy();
             pos_.insert(pos_.begin(), new_pos);
-            field_->resetApple();
+            field->occupy( new_pos, this);
             break;
         case ObjectType::Snake:
             break;
@@ -52,6 +69,32 @@ void Snake::tryMove()
             assert(0 && "not handled ObjectType");
             break;
     }
+}
+
+void Apple::destroy()
+{
+    model_->getField()->release( pos_);
+    model_->addInactive( this);
+    is_active_ = false;
+}
+
+void Apple::reset()
+{$$
+    Vec2i new_pos;
+    Field* field = model_->getField();
+    Vec2i size = field->getSize();
+
+    do
+    {
+        new_pos = {
+            uniform_distr( 0, size.x),
+            uniform_distr( 0, size.y),
+        };
+    } while (field->checkTile(new_pos)->getType() != ObjectType::Empty);
+
+    field->occupy( new_pos, this);
+    pos_ = new_pos;
+    is_active_ = true;
 }
 
 } // namespace py

@@ -2,6 +2,7 @@
 #define VIEW_H
 
 #include <iostream>
+#include <map>
 #include <ncurses.h>
 #include <poll.h>
 #include <unistd.h>
@@ -9,61 +10,60 @@
 #include <SFML/Graphics.hpp>
 
 #include "model.h"
+#include "view_iface.h"
 
 namespace py
 {
 
 enum class AppState
 {
-    EXIT,
+    RUNNING,
     TUI,
-    GUI
+    GUI,
+    EXIT,
 };
 
-class IView
+class SwitchableView : public IView
 {
-protected:
-    Field* field_;
-    Snake* snake_;
-    Apple* apple_;
-
 public:
-    IView(Field* field,
-          Snake* snake,
-          Apple* apple)
-        : field_(field)
-        , snake_(snake)
-        , apple_(apple)
-    {}
+    virtual bool pollEvent( Event& event) = 0;
+    virtual AppState onEvent( Event& event) = 0;
 
-    IView(const IView& that) = delete;
-    IView(IView&& that) = delete;
-    IView& operator=(const IView& that) = delete;
-    IView& operator=(IView&& that) = delete;
-    virtual ~IView() = default;
-
-    virtual AppState run() = 0;
+    virtual void activate() = 0;
+    virtual void deactivate() = 0;
 };
 
-class GuiView final : public IView
+class GuiView final : public SwitchableView
 {
 private:
+    std::unique_ptr<sf::RenderWindow> win_;
+    Vec2i win_pos_;
+    Vec2i win_size_;
+
     int32_t tile_sz_;
 
 public:
-    GuiView(Field* field,
-            Snake* snake,
-            Apple* apple)
-        : IView(field, snake, apple)
-        , tile_sz_(16)
-    {}
+    GuiView(Vec2i win_pos,
+            Vec2i win_size)
+        : win_{
+            std::make_unique<sf::RenderWindow>( sf::VideoMode(win_size.x, win_size.y),
+                                                "My window")
+          }
+        , win_pos_{ win_pos}
+        , win_size_{ win_size}
+        , tile_sz_{ 16}
+    {
+        win_->setVisible( false);
+        win_->setPosition( win_pos);
+    }
 
-    GuiView(const GuiView& that) = delete;
-    GuiView(GuiView&& that) = delete;
-    GuiView& operator=(const GuiView& that) = delete;
-    GuiView& operator=(GuiView&& that) = delete;
+    GuiView( const GuiView& that) = delete;
+    GuiView( GuiView&& that) = delete;
+    GuiView& operator=( const GuiView& that) = delete;
+    GuiView& operator=( GuiView&& that) = delete;
     ~GuiView() override = default;
 
+#if 0
     AppState run() override
     {
         Vec2i size{800, 600};
@@ -108,8 +108,6 @@ public:
                                 break;
                             case sf::Keyboard::C:
                                 return AppState::TUI;
-                            case sf::Keyboard::Q:
-                                return AppState::EXIT;
                             default:
                                 break;
                         }
@@ -139,18 +137,20 @@ public:
         assert(0 && "fallthrough");
         return AppState::EXIT;
     }
+#endif
 
-private:
-    void draw(sf::RenderWindow* win, Vec2i win_pos, Vec2i win_size)
+    void draw( const Field* field) override
     {
-        Vec2i sz = field_->getSize();
+        Vec2i field_sz = field->getSize();
+        Vec2i pixels_sz = field_sz * tile_sz_;
+        Vec2i pixels_pos = {(win_size_.x - pixels_sz.x) / 2, (win_size_.y - pixels_sz.y) / 2};
 
-        for (uint32_t j = 0; j < sz.y; j++)
+        for (uint32_t j = 0; j < field_sz.y; j++)
         {
-            for (uint32_t i = 0; i < sz.x; i++)
+            for (uint32_t i = 0; i < field_sz.x; i++)
             {
                 sf::Color col;
-                switch (field_->checkTile({i, j}))
+                switch (field->checkTile( {i, j})->getType())
                 {
                     case ObjectType::Empty:
                         col = sf::Color::White;
@@ -163,20 +163,108 @@ private:
                         break;
                     case ObjectType::OutOfBorders:
                     default:
-                        assert(0 && "out of borders");
+                        assert( 0 && "out of borders");
                         break;
                 }
 
                 sf::RectangleShape tile({tile_sz_, tile_sz_});
-                tile.setFillColor(col);
-                tile.setPosition(win_pos.x + i * tile_sz_, 
-                                 win_pos.y + j * tile_sz_);
-                win->draw(tile);
+                tile.setFillColor( col);
+                tile.setPosition( pixels_pos.x + i * tile_sz_, 
+                                  pixels_pos.y + j * tile_sz_);
+                win_->draw( tile);
             }
         }
     }
+
+    void display() override
+    {
+        win_->display();
+    }
+
+    void activate() override
+    {
+        win_->setVisible( true);
+    }
+
+    void deactivate() override
+    {
+        win_->setVisible( false);
+    }
+
+    bool pollEvent( Event& event)
+    {
+        return win_->pollEvent( event);
+    }
+
+    AppState onEvent( Event& event) override
+    {
+        switch ( event.type)
+        {
+            case sf::Event::Closed:
+            {
+                return AppState::EXIT;
+            }
+            case sf::Event::KeyPressed:
+            {
+                switch ( event.key.code)
+                {
+                    case sf::Keyboard::C:
+                        return AppState::TUI;
+                    default:
+                        break;
+                }
+
+                break;
+            }
+            default:
+            {
+                break;
+            }
+        }
+
+        return AppState::RUNNING;
+    }
 };
 
+class TuiView final : public SwitchableView
+{
+public:
+    TuiView() = default;
+
+    void draw(const Field* field) override
+    {
+        std::cerr << "Unimplemented draw\n";
+    }
+
+    void display() override
+    {
+        std::cerr << "Unimplemented display\n";
+    }
+
+    void activate() override
+    {
+        std::cerr << "Unimplemented activate\n";
+    }
+
+    void deactivate() override
+    {
+        std::cerr << "Unimplemented deactivate\n";
+    }
+
+    bool pollEvent(sf::Event&)
+    {
+        std::cerr << "Unimplemented pollEvent\n";
+        return false;
+    }
+
+    AppState onEvent(sf::Event&)
+    {
+        std::cerr << "Unimplemented onEvent\n";
+        return AppState::RUNNING;
+    }
+};
+
+#if 0
 class TuiView final : public IView
 {
 private:
@@ -308,6 +396,65 @@ private:
 
         wrefresh(win_);
         refresh();
+    }
+};
+
+#endif
+
+class ViewManager final : public IView
+{
+private:
+    std::unique_ptr<GuiView> gui;
+    std::unique_ptr<TuiView> tui;
+    SwitchableView* active_;
+
+public:
+    ViewManager()
+        : gui{ std::make_unique<GuiView>( Vec2i{100, 100}, Vec2i{800, 600})}
+        , tui{}
+        , active_{ gui.get()}
+    {
+        active_->activate();
+    }
+
+    void draw( const Field* field) override
+    {
+        active_->draw( field);
+    }
+
+    void display() override
+    {
+        active_->display();
+    }
+
+    bool pollEvent( Event& event)
+    {
+        return active_->pollEvent( event);
+    }
+
+    AppState onEvent( Event& event)
+    {
+        AppState state = active_->onEvent( event);
+
+        switch (state)
+        {
+            case AppState::GUI:
+                active_->deactivate();
+                active_ = gui.get();
+                active_->activate();
+                state = AppState::RUNNING;
+                break;
+            case AppState::TUI:
+                active_->deactivate();
+                active_ = tui.get();
+                active_->activate();
+                state = AppState::RUNNING;
+                break;
+            default:
+                break;
+        }
+
+        return state;
     }
 };
 
