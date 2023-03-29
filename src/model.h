@@ -84,7 +84,48 @@ public:
 
     bool contains(Vec2i pos) const { return 0 <= pos.x && pos.x < size_.x &&
                                             0 <= pos.y && pos.y < size_.y; }
+
+    void dbg_dump()
+    {
+        for (auto& row : tiles_)
+        {
+            for (auto& tile : row)
+            {
+                char ch = '?';
+                if (tile == nullptr)
+                {
+                    ch = 'n';
+                }
+                else
+                {
+                    switch (tile->getType())
+                    {
+                        case ObjectType::Apple:
+                            ch = 'a';
+                            break;
+                        case ObjectType::Empty:
+                            ch = '-';
+                            break;
+                        case ObjectType::Snake:
+                            ch = 's';
+                            break;
+                        case ObjectType::OutOfBorders:
+                            ch = 'O';
+                            break;
+                        default:
+                            assert(0 && "fallthrough");
+                            break;
+                    }
+                }
+
+                $M("%c ", ch);
+            }
+
+            $M("\n");
+        }
+    }
 };
+
 
 class Model;
 
@@ -106,8 +147,6 @@ public:
 
     void destroy();
     void reset();
-
-    // Vec2i getPos() const { return pos_; }
 };
 
 class Snake final : public Object
@@ -129,14 +168,10 @@ private:
     Vec2i dir_shift_;
 
 public:
-    Snake( Model* model,
-           const std::vector<Vec2i>& pos);
+    Snake( Model* model);
 
-    // bool occupies(Vec2i pos)
-    // {
-    //     return std::find(pos_.begin(), pos_.end(), pos) != pos_.end();
-    // }
-
+    void clear();
+    void addPosition( Vec2i pos);
     bool tryMove();
     void setDirection(Direction direction);
 };
@@ -149,6 +184,7 @@ private:
     std::unique_ptr<Field> field_;
 
     std::vector<Apple*> inactive_apples_;
+    std::vector<Snake*> inactive_snakes_;
 
 public:
     Model()
@@ -157,11 +193,42 @@ public:
         , field_{ std::make_unique<Field>( Vec2i{20, 20})}
     {}
 
-    Snake* createSnake( const std::vector<Vec2i> pos)
+    Snake* createSnake()
     {
-        snakes_.push_back( std::make_unique<Snake>( this, pos));
+        snakes_.push_back( std::make_unique<Snake>( this));
+        inactive_snakes_.push_back( snakes_.back().get());
 
         return snakes_.back().get();
+    }
+
+    void resetSnake( Snake* snake)
+    {
+        Vec2i sz = field_->getSize();
+        snake->clear();
+
+        Vec2i pos;
+        do
+        {
+            pos = { uniform_distr( 0, sz.x), uniform_distr( 0, sz.y)};
+        }
+        while (field_->checkTile( pos)->getType() != ObjectType::Empty);
+
+        snake->addPosition( pos);
+
+        for (size_t i = 0; i < 5; i++)
+        {
+            Vec2i shift;
+            Vec2i shifts[] = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
+
+            do
+            {
+                shift = shifts[uniform_distr( 0, 3)];
+            }
+            while (field_->checkTile( pos + shift)->getType() != ObjectType::Empty);
+
+            pos += shift;
+            snake->addPosition( pos);
+        }
     }
 
     Apple* createApple()
@@ -177,20 +244,31 @@ public:
         inactive_apples_.push_back( apple);
     }
 
+    void addInactive( Snake* snake)
+    {
+        inactive_snakes_.push_back( snake);
+    }
+
     void init()
     {
         for (auto* apple : inactive_apples_)
             apple->reset();
 
+        for (auto* snake : inactive_snakes_)
+            resetSnake( snake);
+
         inactive_apples_.clear();
+        inactive_snakes_.clear();
     }
 
     bool turn()
     {
         bool is_changed = false;
-        // FIXME: remove apple reseting from tryMove
         for (auto& snake : snakes_)
-            is_changed = is_changed || snake->tryMove();
+        {
+            snake->tryMove();
+            is_changed = true;
+        }
 
         for (auto* apple : inactive_apples_)
         {
@@ -198,6 +276,12 @@ public:
             is_changed = true;
         }
 
+        for (auto* snake : inactive_snakes_)
+        {
+            resetSnake( snake);
+        }
+
+        inactive_snakes_.clear();
         inactive_apples_.clear();
 
         return is_changed;

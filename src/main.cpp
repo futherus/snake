@@ -64,26 +64,17 @@ $$
                          py::Keyboard::Right
     };
 
-    // py::HumanControl ctl2{py::Keyboard::W,
-    //                      py::Keyboard::A,
-    //                      py::Keyboard::S,
-    //                      py::Keyboard::D
-    // };
+    py::HumanControl ctl2{py::Keyboard::W,
+                         py::Keyboard::A,
+                         py::Keyboard::S,
+                         py::Keyboard::D
+    };
 
-    py::AiControl ctl2{ 0};
+    // py::AiControl ctl2{ 0};
 
     py::Model model;
-    py::Snake* snake1 = model.createSnake( {{1, 1},
-                                           {2, 1},
-                                           {3, 1},
-                                           {4, 1}}
-    );
-
-    py::Snake* snake2 = model.createSnake( {{1, 3},
-                                           {2, 3},
-                                           {3, 3},
-                                           {4, 3}}
-    );
+    py::Snake* snake1 = model.createSnake();
+    py::Snake* snake2 = model.createSnake();
 
     model.createApple();
     model.createApple();

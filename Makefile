@@ -42,6 +42,8 @@ export CXXFLAGS ?= -O2 -g -std=c++14 -fmax-errors=100 -Wall -Wextra  	    \
 				-fPIE                                                           				\
 				-lm -pie
 
+CXXFLAGS := ${COMMANDLINE} ${CXXFLAGS}
+
 # not overwrite DESTDIR if recursive
 export DESTDIR ?= $(CURDIR)/bin
 TARGET         := $(DESTDIR)/out

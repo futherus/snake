@@ -63,82 +63,6 @@ public:
     GuiView& operator=( GuiView&& that) = delete;
     ~GuiView() override = default;
 
-#if 0
-    AppState run() override
-    {
-        Vec2i size{800, 600};
-        std::unique_ptr<sf::RenderWindow> win =
-            std::make_unique<sf::RenderWindow>(sf::VideoMode(size.x, size.y), "My window");
-
-        Vec2i win_size = field_->getSize() * tile_sz_;
-        Vec2i win_pos = {(size.x - win_size.x) / 2, (size.y - win_size.y) / 2};
-
-        // FIXME
-        sf::Clock clock;
-
-        // run the program as long as the window is open
-        while (win->isOpen())
-        {
-            // check all the window's events that were triggered since the last iteration of the loop
-            sf::Event event;
-            while (win->pollEvent(event))
-            {
-                switch (event.type)
-                {
-                    // "close requested" event: we close the window
-                    case sf::Event::Closed:
-                    {
-                        return AppState::EXIT;
-                    }
-                    case sf::Event::KeyPressed:
-                    {
-                        switch (event.key.code)
-                        {
-                            case sf::Keyboard::Left:
-                                snake_->setDirection(py::Snake::Direction::Left);
-                                break;
-                            case sf::Keyboard::Right:
-                                snake_->setDirection(py::Snake::Direction::Right);
-                                break;
-                            case sf::Keyboard::Up:
-                                snake_->setDirection(py::Snake::Direction::Up);
-                                break;
-                            case sf::Keyboard::Down:
-                                snake_->setDirection(py::Snake::Direction::Down);
-                                break;
-                            case sf::Keyboard::C:
-                                return AppState::TUI;
-                            default:
-                                break;
-                        }
-
-                        break;
-                    }
-                    default:
-                    {
-                        break;
-                    }
-                }
-            }
-
-            if (clock.getElapsedTime().asMilliseconds() > 500)
-            {
-                clock.restart();
-                snake_->tryMove();
-            }
-
-            win->clear();
-
-            draw(win.get(), win_pos, win_size);
-
-            win->display();
-        }
-
-        assert(0 && "fallthrough");
-        return AppState::EXIT;
-    }
-#endif
-
     void draw( const Field* field, bool is_changed) override
     {
         Vec2i field_sz = field->getSize();
@@ -243,7 +167,8 @@ public:
             if (win_)
                 delwin( win_);
 
-            Vec2i new_size = sz + Vec2i{2, 2};
+            Vec2i new_size = sz + Vec2i{1, 2};
+            new_size.x *= 2;
 
             Vec2i new_pos{
                 (COLS  - new_size.x) / 2,
@@ -284,7 +209,8 @@ public:
                             break;
                     }
 
-                    mvwaddch( win_, 1 + j, 1 + i, ch);
+                    mvwaddch( win_, 1 + j, 1 + 2 * i, ch);
+                    mvwaddch( win_, 1 + j, 2 + 2 * i, ' ');
                 }
             }
 
@@ -304,6 +230,7 @@ public:
     void deactivate() override
     {
         delwin( win_);
+        win_ = nullptr;
         endwin();
     }
 
@@ -334,6 +261,22 @@ public:
                 case KEY_DOWN:
                     event.type = sf::Event::KeyPressed;
                     event.key.code = sf::Keyboard::Down;
+                    break;
+                case 'w':
+                    event.type = sf::Event::KeyPressed;
+                    event.key.code = sf::Keyboard::W;
+                    break;
+                case 'a':
+                    event.type = sf::Event::KeyPressed;
+                    event.key.code = sf::Keyboard::A;
+                    break;
+                case 's':
+                    event.type = sf::Event::KeyPressed;
+                    event.key.code = sf::Keyboard::S;
+                    break;
+                case 'd':
+                    event.type = sf::Event::KeyPressed;
+                    event.key.code = sf::Keyboard::D;
                     break;
                 case 'c':
                     event.type = sf::Event::KeyPressed;

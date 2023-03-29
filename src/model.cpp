@@ -6,15 +6,26 @@ namespace py
 Object Field::empty_{ ObjectType::Empty};
 Object Field::out_of_borders_{ ObjectType::OutOfBorders};
 
-Snake::Snake( Model* model,
-              const std::vector<Vec2i>& pos)
+Snake::Snake( Model* model)
     : Object{ ObjectType::Snake}
     , model_{ model}
-    , pos_{ pos}
+    , pos_{}
     , dir_shift_{}
+{}
+
+void Snake::clear()
 {
     for (auto& pos : pos_)
-        model_->getField()->occupy( pos, this);
+        model_->getField()->release( pos);
+
+    pos_.clear();
+}
+
+void Snake::addPosition( Vec2i pos)
+{
+    model_->getField()->occupy( pos, this);
+
+    pos_.push_back( pos);
 }
 
 void Snake::setDirection(Direction direction)
@@ -95,7 +106,7 @@ void Apple::reset()
             uniform_distr( 0, size.x),
             uniform_distr( 0, size.y),
         };
-    } while (field->checkTile(new_pos)->getType() != ObjectType::Empty);
+    } while (field->checkTile( new_pos)->getType() != ObjectType::Empty);
 
     field->occupy( new_pos, this);
     pos_ = new_pos;
