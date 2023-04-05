@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#ifndef NDEBUG
+#ifdef DEBUG
     #define $$ std::fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, __PRETTY_FUNCTION__);
     #define $M(...) std::fprintf(stderr, __VA_ARGS__)
 #else

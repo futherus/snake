@@ -78,7 +78,7 @@ public:
         , win_size_{ field_sz.x * tile_sz_, field_sz.y * tile_sz_}
         , win_{
             std::make_unique<sf::RenderWindow>(
-                sf::VideoMode( win_size_.x, win_size_.y), "My window")
+                sf::VideoMode( win_size_.x, win_size_.y), "Snake")
           }
     {
         win_->setVisible( false);
