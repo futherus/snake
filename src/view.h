@@ -36,22 +36,23 @@ public:
 class GuiView final : public SwitchableView
 {
 private:
-    std::unique_ptr<sf::RenderWindow> win_;
+    Vec2i field_sz_;
     Vec2i win_pos_;
     Vec2i win_size_;
+    std::unique_ptr<sf::RenderWindow> win_;
 
-    int32_t tile_sz_;
+    static constexpr int32_t tile_sz_ = 16;
 
 public:
-    GuiView(Vec2i win_pos,
-            Vec2i win_size)
-        : win_{
-            std::make_unique<sf::RenderWindow>( sf::VideoMode(win_size.x, win_size.y),
-                                                "My window")
-          }
+    GuiView( Vec2i win_pos,
+             Vec2i field_sz)
+        : field_sz_{ field_sz}
         , win_pos_{ win_pos}
-        , win_size_{ win_size}
-        , tile_sz_{ 16}
+        , win_size_{ field_sz.x * tile_sz_, field_sz.y * tile_sz_}
+        , win_{
+            std::make_unique<sf::RenderWindow>(
+                sf::VideoMode( win_size_.x, win_size_.y), "My window")
+          }
     {
         win_->setVisible( false);
         win_->setPosition( win_pos);
@@ -65,13 +66,9 @@ public:
 
     void draw( const Field* field, bool is_changed) override
     {
-        Vec2i field_sz = field->getSize();
-        Vec2i pixels_sz = field_sz * tile_sz_;
-        Vec2i pixels_pos = {(win_size_.x - pixels_sz.x) / 2, (win_size_.y - pixels_sz.y) / 2};
-
-        for (uint32_t j = 0; j < field_sz.y; j++)
+        for (uint32_t j = 0; j < field_sz_.y; j++)
         {
-            for (uint32_t i = 0; i < field_sz.x; i++)
+            for (uint32_t i = 0; i < field_sz_.x; i++)
             {
                 sf::Color col;
                 switch (field->checkTile( {i, j})->getType())
@@ -91,10 +88,10 @@ public:
                         break;
                 }
 
-                sf::RectangleShape tile({tile_sz_, tile_sz_});
+                sf::RectangleShape tile( {tile_sz_, tile_sz_});
                 tile.setFillColor( col);
-                tile.setPosition( pixels_pos.x + i * tile_sz_, 
-                                  pixels_pos.y + j * tile_sz_);
+                tile.setPosition( i * tile_sz_, 
+                                  j * tile_sz_);
                 win_->draw( tile);
             }
         }
@@ -239,8 +236,10 @@ public:
                     }
                     wattron(  win_, COLOR_PAIR( color));
                     mvwaddch( win_, 1 + j, 1 + 2 * i, ch);
-                    mvwaddch( win_, 1 + j, 2 + 2 * i, ' ');
                     wattroff( win_, COLOR_PAIR( color));
+                    wattron(  win_, COLOR_PAIR( EMPTY_PAIR));
+                    mvwaddch( win_, 1 + j, 2 + 2 * i, ' ');
+                    wattroff( win_, COLOR_PAIR( EMPTY_PAIR));
                 }
             }
 
@@ -548,8 +547,8 @@ private:
     SwitchableView* active_;
 
 public:
-    ViewManager()
-        : gui{ std::make_unique<GuiView>( Vec2i{100, 100}, Vec2i{800, 600})}
+    ViewManager( Model* model)
+        : gui{ std::make_unique<GuiView>( Vec2i{100, 100}, model->getField()->getSize())}
         , tui{ std::make_unique<TuiView>()}
         , active_{ gui.get()}
     {

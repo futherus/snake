@@ -6,7 +6,7 @@ namespace py
 Object Field::empty_{ ObjectType::Empty};
 Object Field::out_of_borders_{ ObjectType::OutOfBorders};
 
-const Apple* Field::findClosest( Vec2i pos) const
+Apple* Field::findClosest( Vec2i pos)
 {
     Apple* closest = nullptr;
     int closest_dist2 = INT32_MAX;

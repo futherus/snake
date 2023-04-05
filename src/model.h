@@ -125,7 +125,7 @@ public:
         }
     }
 
-    const Apple* findClosest( Vec2i pos) const;
+    Apple* findClosest( Vec2i pos);
 };
 
 
@@ -167,6 +167,7 @@ private:
 
     std::vector<Vec2i> pos_;
 
+    const Apple* target_;
     Vec2i dir_shift_;
 
 public:
@@ -198,10 +199,10 @@ private:
     std::vector<Snake*> inactive_snakes_;
 
 public:
-    Model()
+    Model( Vec2i field_sz)
         : snakes_{}
         , apples_{}
-        , field_{ std::make_unique<Field>( Vec2i{20, 20})}
+        , field_{ std::make_unique<Field>( field_sz)}
     {}
 
     Snake* createSnake()
@@ -212,32 +213,55 @@ public:
         return snakes_.back().get();
     }
 
-    void resetSnake( Snake* snake)
-    {
-        Vec2i sz = field_->getSize();
+    static constexpr size_t k_snake_init_ = 3;
 
-        Vec2i pos;
+    void resetSnake( Snake* snake)
+    {$$
+        Vec2i sz = field_->getSize();
+        $M( "size: (%d, %d)\n", sz.x, sz.y);
+
+        Vec2i curr;
+
         do
         {
-            pos = { uniform_distr( 0, sz.x), uniform_distr( 0, sz.y)};
+            curr = { uniform_distr( 0, sz.x), uniform_distr( 0, sz.y)};
         }
-        while (field_->checkTile( pos)->getType() != ObjectType::Empty);
+        while (field_->checkTile( curr)->getType() != ObjectType::Empty);
 
-        snake->addPosition( pos);
+        $M( "head: (%d, %d)\n", curr.x, curr.y);
+        snake->addPosition( curr);
 
-        for (size_t i = 0; i < 5; i++)
+        for (size_t i = 1; i < k_snake_init_; i++)
         {
-            Vec2i shift;
-            Vec2i shifts[] = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
+            $M( "i = %zu\n", i);
 
+            const Vec2i shifts[] = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
+            std::vector<Vec2i> possible;
+            for (auto s : shifts)
+            {
+                if (field_->checkTile( curr + s)->getType() == ObjectType::Empty)
+                    possible.push_back( s);
+            }
+
+            if (possible.size() == 0)
+                return;
+
+            Vec2i shift;
             do
             {
-                shift = shifts[uniform_distr( 0, 3)];
+                shift = possible[uniform_distr( 0, possible.size() - 1)];
+                $M( "snake: [ ");
+                for (auto tile : snake->getPosition())
+                {
+                    $M( "(%d, %d) ", tile.x, tile.y);
+                }
+                $M( "]\n");
+                $M( "shift: (%d, %d)\n", shift.x, shift.y);
             }
-            while (field_->checkTile( pos + shift)->getType() != ObjectType::Empty);
+            while (field_->checkTile( curr + shift)->getType() != ObjectType::Empty);
 
-            pos += shift;
-            snake->addPosition( pos);
+            curr += shift;
+            snake->addPosition( curr);
         }
     }
 
@@ -312,6 +336,9 @@ public:
 
     Field* getField() { return field_.get(); }
     const Field* getField() const { return field_.get(); }
+
+    const std::vector<std::unique_ptr<Snake>>& getSnakes() const { return snakes_; }
+    const std::vector<std::unique_ptr<Apple>>& getApples() const { return apples_; }
 };
 
 }

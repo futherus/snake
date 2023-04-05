@@ -96,14 +96,14 @@ int main(int argc, char *argv[])
 #endif
 
 $$
-    py::Model model;
+    py::Model model( {30, 30});
 
-    // py::HumanControl ctl1{ &model,
-    //                        py::Keyboard::Up,
-    //                        py::Keyboard::Left,
-    //                        py::Keyboard::Down,
-    //                        py::Keyboard::Right
-    // };
+    py::HumanControl ctl1{ &model,
+                           py::Keyboard::Up,
+                           py::Keyboard::Left,
+                           py::Keyboard::Down,
+                           py::Keyboard::Right
+    };
 
     // py::HumanControl ctl2{ &model,
     //                        py::Keyboard::W,
@@ -118,7 +118,7 @@ $$
     py::AiControl ctl6{ &model};
 
 
-    // py::Snake* snake1 = model.createSnake();
+    py::Snake* snake1 = model.createSnake();
     // py::Snake* snake2 = model.createSnake();
     py::Snake* snake3 = model.createSnake();
     py::Snake* snake4 = model.createSnake();
@@ -130,7 +130,7 @@ $$
     model.createApple();
 
 $$
-    // ctl1.setSnake( snake1);
+    ctl1.setSnake( snake1);
     // ctl2.setSnake( snake2);
     ctl3.setSnake( snake3);
     ctl4.setSnake( snake4);
@@ -140,7 +140,7 @@ $$
 $$
     model.init();
 $$
-    py::ViewManager vm;
+    py::ViewManager vm( &model);
     sf::Clock clock;
 
     bool exit = false;
@@ -150,7 +150,7 @@ $$
         py::Event event;
         while (vm.pollEvent( event))
         {
-            // ctl1.onEvent( event);
+            ctl1.onEvent( event);
             // ctl2.onEvent( event);
             checkDelay( event);
             if (vm.onEvent( event) == py::AppState::EXIT)

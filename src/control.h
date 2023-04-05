@@ -17,7 +17,7 @@ private:
     Keyboard::Key down_;
 
 public:
-    HumanControl( const Model* model,
+    HumanControl( Model* model,
                   Keyboard::Key up,
                   Keyboard::Key left,
                   Keyboard::Key down,
@@ -96,15 +96,15 @@ private:
     }
 
 public:
-    AiControl( const Model* model)
+    AiControl( Model* model)
         : IControl{ model}
     {}
 
     void onTurn()
     {
         auto&& pos = snake_->getPosition();
-        const Field* field = model_->getField();
-        const Apple* apple = field->findClosest( pos.front());
+        Field* field = model_->getField();
+        Apple* apple = field->findClosest( pos.front());
         Vec2i apple_pos = apple->getPosition();
         $M( "closest apple = (%d, %d)\n", apple_pos.x, apple_pos.y);
 

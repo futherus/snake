@@ -12,10 +12,10 @@ class IControl
 {
 protected:
     Snake* snake_;
-    const Model* model_;
+    Model* model_;
 
 public:
-    IControl( const Model* model)
+    IControl( Model* model)
         : snake_{}
         , model_{ model}
     {}
