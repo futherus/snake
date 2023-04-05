@@ -32,10 +32,10 @@ Apple* Field::findClosest( Vec2i pos)
 }
 
 Snake::Snake( Model* model,
-              int id)
+              Color color)
     : Object{ ObjectType::Snake}
     , model_{ model}
-    , id_{ id}
+    , color_{ color}
     , pos_{}
     , dir_shift_{}
 {}
@@ -121,6 +121,7 @@ void Apple::destroy()
 {
     model_->getField()->release( pos_);
     model_->addInactive( this);
+    color_ = Color::Red;
 }
 
 void Apple::setPosition( Vec2i pos)

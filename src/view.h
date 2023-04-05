@@ -43,6 +43,33 @@ private:
 
     static constexpr int32_t tile_sz_ = 16;
 
+    sf::Color getColor( Color color)
+    {
+        switch (color)
+        {
+            case Color::Black:
+                return sf::Color::Black;
+            case Color::Green:
+                return sf::Color::Green;
+            case Color::Blue:
+                return sf::Color::Blue;
+            case Color::Cyan:
+                return sf::Color::Cyan;
+            case Color::Magenta:
+                return sf::Color::Magenta;
+            case Color::Yellow:
+                return sf::Color::Yellow;
+            case Color::Red:
+                return sf::Color::Red;
+            case Color::White:
+                return sf::Color::White;
+            default:
+                assert(0 && "Unsupported color");
+        }
+
+        return sf::Color::Cyan;
+    }
+
 public:
     GuiView( Vec2i win_pos,
              Vec2i field_sz)
@@ -64,36 +91,37 @@ public:
     GuiView& operator=( GuiView&& that) = delete;
     ~GuiView() override = default;
 
-    void draw( const Field* field, bool is_changed) override
+    void draw( const Model* model, bool is_changed) override
     {
-        for (uint32_t j = 0; j < field_sz_.y; j++)
-        {
-            for (uint32_t i = 0; i < field_sz_.x; i++)
-            {
-                sf::Color col;
-                switch (field->checkTile( {i, j})->getType())
-                {
-                    case ObjectType::Empty:
-                        col = sf::Color::White;
-                        break;
-                    case ObjectType::Apple:
-                        col = sf::Color::Red;
-                        break;
-                    case ObjectType::Snake:
-                        col = sf::Color::Green;
-                        break;
-                    case ObjectType::OutOfBorders:
-                    default:
-                        assert( 0 && "out of borders");
-                        break;
-                }
+        win_->clear(sf::Color::White);
 
+        auto&& snakes = model->getSnakes();
+        for (auto&& uptr : snakes)
+        {
+            const Snake* s = uptr.get();
+
+            for (auto&& pos : s->getPosition())
+            {
                 sf::RectangleShape tile( {tile_sz_, tile_sz_});
-                tile.setFillColor( col);
-                tile.setPosition( i * tile_sz_, 
-                                  j * tile_sz_);
+                tile.setFillColor( getColor( s->getColor()));
+                tile.setPosition( pos.x * tile_sz_, 
+                                  pos.y * tile_sz_);
                 win_->draw( tile);
+
             }
+        }
+
+        auto&& apples = model->getApples();
+        for (auto&& uptr : apples)
+        {
+            const Apple* a = uptr.get();
+            Vec2i pos = a->getPosition();
+
+            sf::CircleShape tile{ tile_sz_ / 2.f};
+            tile.setFillColor( getColor( a->getColor()));
+            tile.setPosition( pos.x * tile_sz_, 
+                              pos.y * tile_sz_);
+            win_->draw( tile);
         }
 
         win_->display();
@@ -144,20 +172,6 @@ public:
     }
 };
 
-const int EMPTY_PAIR{1};
-const int APPLE_PAIR{2};
-const int SNAKE_PAIR_BASE{3};
-
-const int SNAKE_COLORS[] {
-    COLOR_GREEN,
-    COLOR_BLUE,
-    COLOR_CYAN,
-    COLOR_MAGENTA,
-    COLOR_YELLOW
-};
-
-const int COLOR_GRAY{16};
-
 class TuiView final : public SwitchableView
 {
 private:
@@ -167,12 +181,31 @@ private:
 
     Vec2i field_size_;
 
+    static constexpr int COLOR_GRAY = 16;
+
+    void initColorPairs()
+    {
+        init_pair( 1 + static_cast<short>( Color::Black),   COLOR_BLACK,   COLOR_GRAY);
+        init_pair( 1 + static_cast<short>( Color::Green),   COLOR_GREEN,   COLOR_GRAY);
+        init_pair( 1 + static_cast<short>( Color::Blue),    COLOR_BLUE,    COLOR_GRAY);
+        init_pair( 1 + static_cast<short>( Color::Cyan),    COLOR_CYAN,    COLOR_GRAY);
+        init_pair( 1 + static_cast<short>( Color::Magenta), COLOR_MAGENTA, COLOR_GRAY);
+        init_pair( 1 + static_cast<short>( Color::Yellow),  COLOR_YELLOW,  COLOR_GRAY);
+        init_pair( 1 + static_cast<short>( Color::Red),     COLOR_RED,     COLOR_GRAY);
+        init_pair( 1 + static_cast<short>( Color::White),   COLOR_WHITE,   COLOR_GRAY);
+    }
+
+    short getColorPair( Color color)
+    {
+        return 1 + static_cast<short>( color);
+    }
+
 public:
     TuiView() = default;
 
-    void draw( const Field* field, bool is_changed) override
+    void draw( const Model* model, bool is_changed) override
     {
-        Vec2i sz = field->getSize();
+        Vec2i sz = model->getField()->getSize();
         if (!win_ || field_size_ != sz)
         {
             if (win_)
@@ -189,6 +222,16 @@ public:
             win_ = newwin( new_size.y, new_size.x, new_pos.y, new_pos.x);
             box( win_, 0, 0);
 
+            wattron( win_, COLOR_PAIR( getColorPair( Color::Black)));
+            for (int32_t j = 0; j < sz.y; j++)
+            {
+                for (int32_t i = 0; i < sz.x; i++)
+                {
+                    mvwaddch( win_, 1 + j, 2 + 2 * i, ' ');
+                }
+            }
+            wattroff( win_, COLOR_PAIR( getColorPair( Color::Black)));
+
             win_size_ = new_size;
             win_pos_ = new_pos;
             field_size_ = sz;
@@ -198,49 +241,42 @@ public:
 
         if (is_changed)
         {
+            wattron( win_, COLOR_PAIR( getColorPair( Color::Black)));
             for (int32_t j = 0; j < sz.y; j++)
             {
                 for (int32_t i = 0; i < sz.x; i++)
                 {
-                    char ch = 0;
-                    int color = EMPTY_PAIR;
-                    Object* obj = field->checkTile( {i, j});
-                    switch (obj->getType())
-                    {
-                        case ObjectType::Empty:
-                        {
-                            ch = '-';
-                            color = EMPTY_PAIR;
-                            break;
-                        }
-                        case ObjectType::Apple:
-                        {
-                            ch = '*';
-                            color = APPLE_PAIR;
-                            break;
-                        }
-                        case ObjectType::Snake:
-                        {
-                            ch = '#';
-                            Snake* snake = static_cast<Snake*>( obj);
-                            color = SNAKE_PAIR_BASE
-                                    + snake->getId() % (sizeof(SNAKE_COLORS) / sizeof(int));
-                            break;
-                        }
-                        case ObjectType::OutOfBorders:
-                        default:
-                        {
-                            assert(0 && "out of borders");
-                            break;
-                        }
-                    }
-                    wattron(  win_, COLOR_PAIR( color));
-                    mvwaddch( win_, 1 + j, 1 + 2 * i, ch);
-                    wattroff( win_, COLOR_PAIR( color));
-                    wattron(  win_, COLOR_PAIR( EMPTY_PAIR));
-                    mvwaddch( win_, 1 + j, 2 + 2 * i, ' ');
-                    wattroff( win_, COLOR_PAIR( EMPTY_PAIR));
+                    mvwaddch( win_, 1 + j, 1 + 2 * i, '-');
                 }
+            }
+            wattroff( win_, COLOR_PAIR( getColorPair( Color::Black)));
+
+            auto&& snakes = model->getSnakes();
+            for (auto&& uptr : snakes)
+            {
+                const Snake* s = uptr.get();
+
+                wattron( win_, COLOR_PAIR( getColorPair( s->getColor())));
+                // wattron(  win_, COLOR_PAIR( getColorPair( Color::Magenta)));
+                char ch = '@';
+                for (auto&& pos : s->getPosition())
+                {
+                    mvwaddch( win_, 1 + pos.y, 1 + 2 * pos.x, ch);
+                    ch = '#';
+                }
+                wattroff( win_, COLOR_PAIR( getColorPair( s->getColor())));
+                // wattroff(  win_, COLOR_PAIR( getColorPair( Color::Magenta)));
+            }
+
+            auto&& apples = model->getApples();
+            for (auto&& uptr : apples)
+            {
+                const Apple* a = uptr.get();
+                Vec2i pos = a->getPosition();
+
+                wattron(  win_, COLOR_PAIR( getColorPair( a->getColor())));
+                mvwaddch( win_, 1 + pos.y, 1 + 2 * pos.x, '*');
+                wattroff( win_, COLOR_PAIR( getColorPair( a->getColor())));
             }
 
             refresh();
@@ -255,12 +291,9 @@ public:
         cbreak();
         noecho();
         keypad( stdscr, TRUE);
+        curs_set( 0);
 
-        init_pair( EMPTY_PAIR, COLOR_BLACK, COLOR_GRAY);
-        init_pair( APPLE_PAIR, COLOR_RED,   COLOR_GRAY);
-
-        for (int col = 0; col < sizeof(SNAKE_COLORS) / sizeof(int); col++)
-            init_pair( SNAKE_PAIR_BASE + col, SNAKE_COLORS[col], COLOR_GRAY);
+        initColorPairs();
     }
 
     void deactivate() override
@@ -402,143 +435,6 @@ public:
     }
 };
 
-#if 0
-class TuiView final : public IView
-{
-private:
-    WINDOW* win_;
-    Vec2i win_pos_;
-    Vec2i win_size_;
-
-public:
-    TuiView(Field* field,
-            Snake* snake,
-            Apple* apple)
-        : IView(field, snake, apple)
-        , win_()
-        , win_pos_()
-        , win_size_()
-    {}
-
-    TuiView(const TuiView& that) = delete;
-    TuiView(TuiView&& that) = delete;
-    TuiView& operator=(const TuiView& that) = delete;
-    TuiView& operator=(TuiView&& that) = delete;
-    ~TuiView() override = default;
-
-    AppState run() override
-    {
-        initscr();
-        cbreak();
-        noecho();
-        keypad(stdscr, TRUE);
-        refresh();
-
-        Vec2i sz = field_->getSize();
-        win_size_ = sz + Vec2i{2, 2};
-
-        win_pos_.x = (COLS  - win_size_.x) / 2;
-        win_pos_.y = (LINES - win_size_.y) / 2;
-
-        win_ = newwin(win_size_.y, win_size_.x, win_pos_.y, win_pos_.x);
-        box(win_, 0, 0);
-        draw();
-
-        struct pollfd fds[1];
-        fds[0].fd = STDIN_FILENO;
-        fds[0].events = POLLIN;
-
-        // FIXME:
-        sf::Clock clock;
-
-        while(true)
-        {
-            int timeout = 500 - clock.getElapsedTime().asMilliseconds();
-            if (timeout < 0)
-                timeout = 0;
-
-            int ret = poll(fds, 1, timeout);
-            if (ret > 0)
-            {
-                int ch = getch();
-                switch(ch)
-                {
-                    case KEY_LEFT:
-                        snake_->setDirection(py::Snake::Direction::Left);
-                        break;
-                    case KEY_RIGHT:
-                        snake_->setDirection(py::Snake::Direction::Right);
-                        break;
-                    case KEY_UP:
-                        snake_->setDirection(py::Snake::Direction::Up);
-                        break;
-                    case KEY_DOWN:
-                        snake_->setDirection(py::Snake::Direction::Down);
-                        break;
-                    case 'c':
-                        delwin(win_);
-                        endwin();
-                        return AppState::GUI;
-                    case 'q':
-                        delwin(win_);
-                        endwin();
-                        return AppState::EXIT;
-                    default:
-                        break;
-                }
-            }
-
-            if (clock.getElapsedTime().asMilliseconds() > 500)
-            {
-                clock.restart();
-                snake_->tryMove();
-                draw();
-            }
-        }
-
-        delwin(win_);
-        endwin();
-        return AppState::EXIT;
-    }
-
-private:
-    void draw()
-    {
-        Vec2i sz = field_->getSize();
-
-        for (int32_t j = 0; j < sz.y; j++)
-        {
-            for (int32_t i = 0; i < sz.x; i++)
-            {
-                char ch = 0;
-                switch (field_->checkTile({i, j}))
-                {
-                    case ObjectType::Empty:
-                        ch = '-';
-                        break;
-                    case ObjectType::Apple:
-                        ch = '*';
-                        break;
-                    case ObjectType::Snake:
-                        ch = '#';
-                        break;
-                    case ObjectType::OutOfBorders:
-                    default:
-                        assert(0 && "out of borders");
-                        break;
-                }
-
-                mvaddch(win_pos_.y+1 + j, win_pos_.x+1 + i, ch);
-            }
-        }
-
-        wrefresh(win_);
-        refresh();
-    }
-};
-
-#endif
-
 class ViewManager final : public IView
 {
 private:
@@ -560,9 +456,9 @@ public:
         active_->deactivate();
     }
 
-    void draw( const Field* field, bool is_changed) override
+    void draw( const Model* model, bool is_changed) override
     {
-        active_->draw( field, is_changed);
+        active_->draw( model, is_changed);
     }
 
     bool pollEvent( Event& event)

@@ -48,6 +48,8 @@ public:
 class AiControl : public IControl
 {
 private:
+    Apple* target_;
+
     std::array<Vec2i, 4> getDirections( Vec2i diff)
     {
         std::array<Vec2i, 4> priors;
@@ -98,14 +100,21 @@ private:
 public:
     AiControl( Model* model)
         : IControl{ model}
+        , target_{ nullptr}
     {}
 
     void onTurn()
     {
         auto&& pos = snake_->getPosition();
         Field* field = model_->getField();
-        Apple* apple = field->findClosest( pos.front());
-        Vec2i apple_pos = apple->getPosition();
+
+        if (target_)
+            target_->setColor();
+
+        target_ = field->findClosest( pos.front());
+        target_->setColor( snake_->getColor());
+
+        Vec2i apple_pos = target_->getPosition();
         $M( "closest apple = (%d, %d)\n", apple_pos.x, apple_pos.y);
 
         auto dirs = getDirections( apple_pos - pos.front());

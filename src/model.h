@@ -135,19 +135,25 @@ class Apple final : public Object
 {
 private:
     Model* model_;
+    Color color_;
 
     Vec2i pos_;
 
 public:
+    static constexpr Color k_default_color_ = Color::Red;
+
     Apple( Model* model)
         : Object{ ObjectType::Apple}
         , model_{ model}
+        , color_{ k_default_color_}
         , pos_{}
     {}
 
     void destroy();
     Vec2i getPosition() const { return pos_; }
     void setPosition( Vec2i pos);
+    void setColor( Color color = k_default_color_) { color_ = color; }
+    Color getColor() const { return color_; }
 };
 
 class Snake final : public Object
@@ -163,26 +169,25 @@ public:
 
 private:
     Model* model_;
-    int id_;
+    Color color_;
 
     std::vector<Vec2i> pos_;
 
-    const Apple* target_;
     Vec2i dir_shift_;
 
 public:
-    Snake( Model* model, int id);
+    Snake( Model* model, Color color);
 
-    int getId() const { return id_; }
     void destroy();
+    Color getColor() const { return color_; }
     void addPosition( Vec2i pos);
     const std::vector<Vec2i>& getPosition() const { return pos_; }
     bool tryMove();
     void setDirection( Direction direction);
     void setDirection( Vec2i shift)
     {
-        assert( shift.x == 0 || shift.x == 1 || shift.x == -1
-                || shift.y == 0 || shift.y == 1 || shift.y == -1);
+        assert( (shift.x == 0 || shift.x == 1 || shift.x == -1)
+                && (shift.y == 0 || shift.y == 1 || shift.y == -1));
 
         dir_shift_ = shift;
     }
@@ -205,9 +210,9 @@ public:
         , field_{ std::make_unique<Field>( field_sz)}
     {}
 
-    Snake* createSnake()
+    Snake* createSnake( Color color)
     {
-        snakes_.push_back( std::make_unique<Snake>( this, snakes_.size()));
+        snakes_.push_back( std::make_unique<Snake>( this, color));
         snakes_.back().get()->destroy();
 
         return snakes_.back().get();

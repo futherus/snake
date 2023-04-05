@@ -6,7 +6,7 @@
 namespace py
 {
 
-class Field;
+class Model;
 
 using Event = sf::Event;
 using Keyboard = sf::Keyboard;
@@ -21,7 +21,19 @@ public:
     IView& operator=(IView&& that) = delete;
     virtual ~IView() = default;
 
-    virtual void draw( const Field* field, bool is_changed) = 0;
+    virtual void draw( const Model* model, bool is_changed) = 0;
+};
+
+enum class Color
+{
+    Black,
+    Green,
+    Blue,
+    Cyan,
+    Magenta,
+    Yellow,
+    Red,
+    White,
 };
 
 }

@@ -96,14 +96,14 @@ int main(int argc, char *argv[])
 #endif
 
 $$
-    py::Model model( {30, 30});
+    py::Model model( {40, 40});
 
-    py::HumanControl ctl1{ &model,
-                           py::Keyboard::Up,
-                           py::Keyboard::Left,
-                           py::Keyboard::Down,
-                           py::Keyboard::Right
-    };
+    // py::HumanControl ctl1{ &model,
+    //                        py::Keyboard::Up,
+    //                        py::Keyboard::Left,
+    //                        py::Keyboard::Down,
+    //                        py::Keyboard::Right
+    // };
 
     // py::HumanControl ctl2{ &model,
     //                        py::Keyboard::W,
@@ -112,26 +112,32 @@ $$
     //                        py::Keyboard::D
     // };
 
+    py::AiControl ctl1{ &model};
+    py::AiControl ctl2{ &model};
     py::AiControl ctl3{ &model};
     py::AiControl ctl4{ &model};
     py::AiControl ctl5{ &model};
     py::AiControl ctl6{ &model};
 
 
-    py::Snake* snake1 = model.createSnake();
-    // py::Snake* snake2 = model.createSnake();
-    py::Snake* snake3 = model.createSnake();
-    py::Snake* snake4 = model.createSnake();
-    py::Snake* snake5 = model.createSnake();
-    py::Snake* snake6 = model.createSnake();
+    py::Snake* snake1 = model.createSnake(py::Color::Green);
+    py::Snake* snake2 = model.createSnake(py::Color::White);
+    py::Snake* snake3 = model.createSnake(py::Color::Blue);
+    py::Snake* snake4 = model.createSnake(py::Color::Yellow);
+    py::Snake* snake5 = model.createSnake(py::Color::Cyan);
+    py::Snake* snake6 = model.createSnake(py::Color::Magenta);
 
+    model.createApple();
+    model.createApple();
+    model.createApple();
+    model.createApple();
     model.createApple();
     model.createApple();
     model.createApple();
 
 $$
     ctl1.setSnake( snake1);
-    // ctl2.setSnake( snake2);
+    ctl2.setSnake( snake2);
     ctl3.setSnake( snake3);
     ctl4.setSnake( snake4);
     ctl5.setSnake( snake5);
@@ -150,7 +156,7 @@ $$
         py::Event event;
         while (vm.pollEvent( event))
         {
-            ctl1.onEvent( event);
+            // ctl1.onEvent( event);
             // ctl2.onEvent( event);
             checkDelay( event);
             if (vm.onEvent( event) == py::AppState::EXIT)
@@ -160,6 +166,8 @@ $$
         if (clock.getElapsedTime().asMilliseconds() > DELAY)
         {
             clock.restart();
+            ctl1.onTurn();
+            ctl2.onTurn();
             ctl3.onTurn();
             ctl4.onTurn();
             ctl5.onTurn();
@@ -168,7 +176,7 @@ $$
             is_changed = model.turn();
         }
 
-        vm.draw( model.getField(), is_changed);
+        vm.draw( &model, is_changed);
         is_changed = false;
     }
 
